@@ -161,7 +161,6 @@
     <ClInclude Include="GLWindow.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="BezierSpline.cpp" />
     <ClCompile Include="GLWindow.cpp" />
     <ClCompile Include="BranchingPoints.cpp" />
   </ItemGroup>
