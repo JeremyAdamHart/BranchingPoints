@@ -36,7 +36,6 @@ public:
 		glm::vec4 color = glm::vec4(1.f));
 
 	void mainLoop();
-	void noiseLoop();
 };
 
 void initGLExtensions();
