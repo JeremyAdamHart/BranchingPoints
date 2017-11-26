@@ -207,6 +207,25 @@ void generateBlendedCurves(vector<Drawable>& drawables, int numCurves, int numDi
 			pointsZ.push_back(vec3(p.x / p.w, p.y / p.w, p.z / p.w));
 		}
 
+		vector<vec3> points;
+		float s = 0;				//s parameterizes line from pointY to center
+		float sStep = 0.75 / 50.f;
+		vec3 a = curvesX[i].control[0] / curvesX[i].control[0].w;
+		vec3 bX = curvesX[i].control[1] / curvesX[i].control[1].w;
+		vec3 bZ = curvesZ[i].control[1] / curvesZ[i].control[1].w;
+
+		float xRatio = 1.f/length(a - bX);
+		float zRatio = 1.f / length(a - bZ);
+
+		while(s < 0.75) {
+			vec3 p = a + s*vec3(0, 1, 0);
+			float uX = 1.f - sqrt(1.f - s*xRatio);
+			float uZ = 1.f - sqrt(1.f - s*zRatio);
+//			vec3 pX = cu
+
+			s += sStep;
+		}
+
 
 		vector<vec3> controlX;
 		vector<vec3> controlZ;
@@ -223,19 +242,13 @@ void generateBlendedCurves(vector<Drawable>& drawables, int numCurves, int numDi
 			new ColorMat(vec3(0.f, 0.f, 1.f)),
 			new SimpleGeometry(controlZ.data(), controlZ.size(), GL_LINE_STRIP)));
 		
-		drawables.push_back(Drawable(
+		/*drawables.push_back(Drawable(
 			new ColorMat(vec3(1.f, 0.f, 0.f)),
 			new SimpleGeometry(pointsX.data(), pointsX.size(), GL_LINE_STRIP))); 
 		drawables.push_back(Drawable(
 			new ColorMat(vec3(0.f, 1.f, 0.f)),
-			new SimpleGeometry(pointsZ.data(), pointsZ.size(), GL_LINE_STRIP)));
+			new SimpleGeometry(pointsZ.data(), pointsZ.size(), GL_LINE_STRIP)));*/
 	}
-
-	vector<vec3> zAxis = { centerZ };
-	drawables.push_back(Drawable(
-		new ColorMat(vec3(1.f, 0.f, 0.f)),
-		new SimpleGeometry(zAxis.data(), 1, GL_POINTS)
-	));
 }
 	
 void WindowManager::mainLoop() {
