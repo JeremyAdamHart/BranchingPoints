@@ -159,10 +159,12 @@
   <ItemGroup>
     <ClInclude Include="BezierSpline.h" />
     <ClInclude Include="GLWindow.h" />
+    <ClInclude Include="Skeleton.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GLWindow.cpp" />
     <ClCompile Include="BranchingPoints.cpp" />
+    <ClCompile Include="Skeleton.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
