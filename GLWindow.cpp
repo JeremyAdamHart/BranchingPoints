@@ -55,9 +55,17 @@ void windowResizeCallback(GLFWwindow* window, int width, int height) {
 	windowHeight = height;
 }
 
+int curvePicker = -1;
+
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
 		reloadShaders = true;
+	else if (key == GLFW_KEY_W && action == GLFW_RELEASE)
+		curvePicker = curvePicker + 1;
+	else if (key == GLFW_KEY_S && action == GLFW_RELEASE)
+		curvePicker = max(curvePicker - 1, 0);
+	else if (key == GLFW_KEY_A && action == GLFW_RELEASE)
+		curvePicker = -1;
 }
 
 WindowManager::WindowManager() :
@@ -113,7 +121,7 @@ WindowManager::WindowManager(int width, int height, std::string name, glm::vec4 
 }
 
 void generateCurves(vector<Drawable>& drawables, int numCurves, int numDivisions, float radius) {
-	
+
 	float thetaStep = M_PI / float(numCurves - 1);
 	float theta = 0;
 
@@ -164,7 +172,14 @@ vec4 circleZ(float theta, vec3 center, float radius) {
 	return vec4(center, 1) + vec4(cos(theta), sin(theta), 0, 0)*radius;
 }
 
+
 void generateBlendedCurves(vector<Drawable>& drawables, int numCurves, int numDivisions, float radius) {
+
+	for (int i = 0; i < drawables.size(); i++) {
+		drawables[i].deleteMaterialsAndGeometry();
+	}
+	drawables.clear();
+
 	float thetaStep = 2.f*M_PI / float(numCurves - 1);
 	float theta = 0;
 
@@ -182,9 +197,9 @@ void generateBlendedCurves(vector<Drawable>& drawables, int numCurves, int numDi
 		vec4 xPoint = circleX(xTheta, centerX, radius);
 		vec4 zPoint = circleZ(zTheta, centerZ, radius);
 		float wX = 1.f / max(cos(theta), 0.0001f);
-		float wY = 1.f / max(cos(theta - M_PI*0.5f), 0.0001f);
+		float wZ = 1.f / max(cos(theta - M_PI*0.5f), 0.0001f);
 		vec4 middleX = vec4(yPoint.x, xPoint.y, xPoint.z, 1.0)*wX;
-		vec4 middleZ = vec4(zPoint.x, zPoint.y, xPoint.z, 1.0)*wY;
+		vec4 middleZ = vec4(zPoint.x, zPoint.y, xPoint.z, 1.0)*wZ;
 
 		curvesX.push_back(bezier<vec4>({ yPoint, middleX, xPoint }));
 		curvesZ.push_back(bezier<vec4>({ yPoint, middleZ, zPoint }));
@@ -208,24 +223,37 @@ void generateBlendedCurves(vector<Drawable>& drawables, int numCurves, int numDi
 		}
 
 		vector<vec3> points;
+		vector<vec3> offsets;
 		float s = 0;				//s parameterizes line from pointY to center
-		float sStep = 0.75 / 50.f;
+		float sStep = 0.75 / 10.f;
 		vec3 a = curvesX[i].control[0] / curvesX[i].control[0].w;
 		vec3 bX = curvesX[i].control[1] / curvesX[i].control[1].w;
 		vec3 bZ = curvesZ[i].control[1] / curvesZ[i].control[1].w;
 
-		float xRatio = 1.f/length(a - bX);
-		float zRatio = 1.f / length(a - bZ);
+		float xRatio = (1.f)/length(a - bX);
+		float zRatio = (1.f) / length(a - bZ);
 
 		while(s < 0.75) {
 			vec3 p = a + s*vec3(0, 1, 0);
 			float uX = 1.f - sqrt(1.f - s*xRatio);
 			float uZ = 1.f - sqrt(1.f - s*zRatio);
-//			vec3 pX = cu
+			vec4 pX = curvesX[i].getQuadPoint(uX);
+			vec4 pZ = curvesZ[i].getQuadPoint(uZ);
 
+			vec3 offsetX = vec3(pX) / pX.w - p;
+			vec3 offsetZ = vec3(pZ) / pZ.w - p;
+
+			points.push_back(p + offsetX + offsetZ);
+			if (i == curvePicker || curvePicker == -1) {
+				offsets.push_back(p);
+				offsets.push_back(p + offsetX);
+				offsets.push_back(p);
+				offsets.push_back(p + offsetZ);
+				offsets.push_back(p);
+				offsets.push_back(p + offsetX + offsetZ);
+			}
 			s += sStep;
 		}
-
 
 		vector<vec3> controlX;
 		vector<vec3> controlZ;
@@ -235,23 +263,36 @@ void generateBlendedCurves(vector<Drawable>& drawables, int numCurves, int numDi
 			controlX.push_back(vec3(pX.x / pX.w, pX.y / pX.w, pX.z / pX.w) + vec3(0.003, 0.003, 0.003));
 			controlZ.push_back(vec3(pZ.x / pZ.w, pZ.y / pZ.w, pZ.z / pZ.w) + vec3(0.003, 0.003, 0.003));
 		}
-		drawables.push_back(Drawable(
-			new ColorMat(vec3(0.f, 0.f, 1.f)),
-			new SimpleGeometry(controlX.data(), controlX.size(), GL_LINE_STRIP)));
-		drawables.push_back(Drawable(
-			new ColorMat(vec3(0.f, 0.f, 1.f)),
-			new SimpleGeometry(controlZ.data(), controlZ.size(), GL_LINE_STRIP)));
+
+		if (true) {
+			drawables.push_back(Drawable(
+				new ColorMat(vec3(0.f, 0.f, 1.f)*float(numCurves)/float(numCurves)),
+				new SimpleGeometry(controlX.data(), controlX.size(), GL_LINE_STRIP)));
+			drawables.push_back(Drawable(
+				new ColorMat(vec3(0.f, 0.f, 1.f)*float(numCurves) / float(numCurves)),
+				new SimpleGeometry(controlZ.data(), controlZ.size(), GL_LINE_STRIP)));
 		
-		/*drawables.push_back(Drawable(
-			new ColorMat(vec3(1.f, 0.f, 0.f)),
-			new SimpleGeometry(pointsX.data(), pointsX.size(), GL_LINE_STRIP))); 
-		drawables.push_back(Drawable(
-			new ColorMat(vec3(0.f, 1.f, 0.f)),
-			new SimpleGeometry(pointsZ.data(), pointsZ.size(), GL_LINE_STRIP)));*/
+			drawables.push_back(Drawable(
+				new ColorMat(vec3(1.f, 1.f, 1.f)*float(numCurves) / float(numCurves)),
+				new SimpleGeometry(points.data(), points.size(), GL_POINTS)));
+
+			drawables.push_back(Drawable(
+				new ColorMat(vec3(1.f, 0.f, 0.f)*float(numCurves) / float(numCurves)),
+				new SimpleGeometry(pointsX.data(), pointsX.size(), GL_LINE_STRIP))); 
+			drawables.push_back(Drawable(
+				new ColorMat(vec3(0.f, 1.f, 0.f)*float(numCurves) / float(numCurves)),
+				new SimpleGeometry(pointsZ.data(), pointsZ.size(), GL_LINE_STRIP)));
+			drawables.push_back(Drawable(
+				new ColorMat(vec3(1.f, 1.f, 0.f)*float(numCurves) / float(numCurves)),
+				new SimpleGeometry(offsets.data(), offsets.size(), GL_LINES)));
+			
+		}
 	}
 }
 	
 void WindowManager::mainLoop() {
+
+	glPointSize(3.f);
 
 	glfwSetKeyCallback(window, keyCallback);
 	glfwSetWindowSizeCallback(window, windowResizeCallback);
@@ -259,13 +300,20 @@ void WindowManager::mainLoop() {
 
 	vector<Drawable> drawables;
 
-	generateBlendedCurves(drawables, 40, 50, 0.1f);
+	generateBlendedCurves(drawables, 20, 20, 0.1f);
+
+	int lastCurvePicked = curvePicker;
 
 	SimpleShader shader;
 
 	vec3 lightPos(10.f, 10.f, 10.f);
 
 	while (!glfwWindowShouldClose(window)) {
+
+		if (curvePicker != lastCurvePicked) {
+			generateBlendedCurves(drawables, 20, 20, 0.1f);
+			lastCurvePicked = curvePicker;
+		}
 
 		if (windowResized) {
 			window_width = windowWidth;
