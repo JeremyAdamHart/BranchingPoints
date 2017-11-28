@@ -20,8 +20,8 @@ using namespace renderlib;
 #define M_PI 3.1415926535897932384626433832795f
 
 TrackballCamera cam(
-	vec3(0, 0, -1), vec3(0, 0, 1),
-	glm::perspective(80.f*M_PI/180.f, 1.f, 0.1f, 3.f));
+	vec3(0, 0, -2), vec3(0, 0, 2),
+	glm::perspective(70.f*M_PI/180.f, 1.f, 0.1f, 5.f));
 
 bool reloadShaders = false;
 bool windowResized = false;
@@ -178,6 +178,11 @@ vec4 circleZ(float theta, vec3 center, float radius) {
 	return vec4(center, 1) + vec4(cos(theta), sin(theta), 0, 0)*radius;
 }
 
+float getUFromS(float s, float w) {
+	float t = 1 - s;
+	return (-sqrt(t*t*w*w - t*t + t) + t*w - t + 1) /
+		(2 * t*w - 2 * t + 1);
+}
 
 void generateBlendedCurves(vector<Drawable>& drawables, int numCurves, int numDivisions, float radius) {
 
@@ -241,8 +246,10 @@ void generateBlendedCurves(vector<Drawable>& drawables, int numCurves, int numDi
 
 		while(s < 0.75) {
 			vec3 p = a + s*vec3(0, 1, 0);
-			float uX = 1.f - sqrt(1.f - s*xRatio);
-			float uZ = 1.f - sqrt(1.f - s*zRatio);
+			float wX = curvesX[i].control[1].w;
+			float wZ = curvesZ[i].control[1].w;
+			float uX = getUFromS(s*xRatio, wX); //1.f - sqrt(1.f - s*xRatio);
+			float uZ = getUFromS(s*zRatio, wZ); //1.f - sqrt(1.f - s*zRatio);
 			vec4 pX = curvesX[i].getQuadPoint(uX);
 			vec4 pZ = curvesZ[i].getQuadPoint(uZ);
 
@@ -362,9 +369,9 @@ void generateSingleCurve2(vector<Drawable>& drawables, int numDivisions) {
 	}
 	drawables.clear();
 
-	vec3 a = vec3(-0.5f, -0.5f, 1.f);
-	vec3 b = vec3(-0.5f, 0.5f, 1.f);
-	vec3 c = vec3(0.5f, 0.5f, 1.f);
+	vec3 a = vec3(-0.5f, -0.5f, 1.f)+vec3(0.5, -0.5, 0.f);
+	vec3 b = vec3(-0.5f, 0.5f, 1.f) + vec3(0.5, -0.5, 0.f);
+	vec3 c = vec3(0.5f, 0.5f, 1.f) + vec3(0.5, -0.5, 0.f);
 
 	float w = 2.f;
 	bezier<vec3> curve({ a, b*w, c});
@@ -389,31 +396,34 @@ void generateSingleCurve2(vector<Drawable>& drawables, int numDivisions) {
 	float sW = lengthW / length(vec4(a, 1) - vec4(b, 1)*w);
 	printf("s = %f\nsW = %f\n", s, sW);
 
-	float u = 1 - sqrt(1 - sW);
+	float u = getUFromS(s, w); //1 - sqrt(1 - s);
 	//	u = sqrt(w*w*u*u + (w - 1)*(w - 1))/sqrt(w*w + (w-1)*(w-1));
 
 	//	printf("s = %f\nu = %f\n\n", s, u);
 
 	vec3 p1 = a + (b - a)*s;
 	vec3 p2 = curve.getQuadPoint(u);
+	vec3 p1w = a + (b*w - a)*s;
 
-	vec3 arr2[2] = { p1, p2 / p2.z };
+	vec3 arr2[4] = { p1, p2 / p2.z , p1w, p2};
+
+	vec3 offset(-0.0, -0.0, -1);
 
 	drawables.push_back(Drawable(
 		new ColorMat(vec3(1.f, 0.f, 0.f)),
-		new SimpleGeometry(arr, 3, GL_LINE_STRIP)));
+		new SimpleGeometry(arr, 3, GL_LINE_STRIP), offset));
 	drawables.push_back(Drawable(
 		new ColorMat(vec3(1.f, 0.f, 0.f)),
-		new SimpleGeometry(curve.control.data(), 3, GL_LINE_STRIP)));
+		new SimpleGeometry(curve.control.data(), 3, GL_LINE_STRIP), offset));
 	drawables.push_back(Drawable(
 		new ColorMat(vec3(1.f, 1.f, 1.f)),
-		new SimpleGeometry(arr2, 2, GL_LINE_STRIP)));
+		new SimpleGeometry(arr2, 4, GL_LINES), offset));
 	drawables.push_back(Drawable(
 		new ColorMat(vec3(0.f, 1.f, 0.f)),
-		new SimpleGeometry(points.data(), points.size(), GL_POINTS)));
+		new SimpleGeometry(points.data(), points.size(), GL_POINTS), offset));
 	drawables.push_back(Drawable(
 		new ColorMat(vec3(0.f, 1.f, 0.f)),
-		new SimpleGeometry(points3D.data(), points3D.size(), GL_POINTS)));
+		new SimpleGeometry(points3D.data(), points3D.size(), GL_POINTS), offset));
 
 
 }
@@ -444,7 +454,7 @@ void WindowManager::mainLoop() {
 			lastCurvePicked = curvePicker;
 		}
 		if (curveProgress != lastCurveProgress) {
-			generateSingleCurve(drawables, 20, 0.1f);
+			generateSingleCurve2(drawables, 20);
 			lastCurveProgress = curveProgress;
 		}
 
