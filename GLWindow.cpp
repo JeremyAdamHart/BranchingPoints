@@ -56,6 +56,7 @@ void windowResizeCallback(GLFWwindow* window, int width, int height) {
 }
 
 int curvePicker = -1;
+float curveProgress = 0.f;
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
@@ -66,6 +67,11 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 		curvePicker = max(curvePicker - 1, 0);
 	else if (key == GLFW_KEY_A && action == GLFW_RELEASE)
 		curvePicker = -1;
+	else if (key == GLFW_KEY_UP && action == GLFW_REPEAT)
+		curveProgress = min(1.f, curveProgress+0.01f);
+	else if (key == GLFW_KEY_DOWN && action == GLFW_REPEAT)
+		curveProgress = max(0.f, curveProgress - 0.01f);
+		
 }
 
 WindowManager::WindowManager() :
@@ -289,6 +295,128 @@ void generateBlendedCurves(vector<Drawable>& drawables, int numCurves, int numDi
 		}
 	}
 }
+
+float transformLength(float x, float w, float A) {
+	return sqrt(pow((x+A)*w-x, 2) + (w - 1)*(w - 1));
+}
+
+void generateSingleCurve(vector<Drawable>& drawables, int numDivisions, float radius) {
+	for (int i = 0; i < drawables.size(); i++) {
+		drawables[i].deleteMaterialsAndGeometry();
+	}
+	drawables.clear();
+
+	vec3 a = vec3(-0.5f, -0.5f, 0.f);
+	vec3 b = vec3(-0.5f, 0.5f, 0.f);
+	vec3 c = vec3(0.5f, 0.5f, 0.f);
+
+	float w = 2.f;
+	bezier<vec4> curve({ vec4(a, 1), vec4(b, 1)*w, vec4(c, 1) });
+
+	vec3 arr[3] = { a, b, c };
+
+	vector<vec4> points4D = curve.getQuadPoints(numDivisions);
+	vector<vec3> points;
+	for (int i = 0; i < points4D.size(); i++) {
+		vec4 &p = points4D[i];
+		points.push_back(vec3(p) / p.w);
+	}
+
+	float s = curveProgress; //sqrt(w*w*(curveProgress*curveProgress) + (w-1)*(w-1));
+	float w2 = (1 + w*s) / (1 + w);
+	float s2 = sqrt(w2*w2*s*s + (w2 - 1)*(w2 - 1))/sqrt(w*w + (w-1)*(w-1));
+
+	//Brute force method
+	vec3 sPoint = a + s*(b - a);
+	vec4 sPointW = vec4(sPoint, 1)*(1+(w-1)*s);
+	float lengthW = length(vec4(a, 1) - sPointW);
+	float sW = lengthW / length(vec4(a, 1) - vec4(b, 1)*w);
+	printf("s = %f\nsW = %f\n", s, sW);
+
+	float u = 1-sqrt(1-sW);
+//	u = sqrt(w*w*u*u + (w - 1)*(w - 1))/sqrt(w*w + (w-1)*(w-1));
+
+//	printf("s = %f\nu = %f\n\n", s, u);
+
+	vec3 p1 = a + (b - a)*s;
+	vec4 p2 = curve.getQuadPoint(u);
+
+	vec3 arr2[2] = { p1, vec3(p2) / p2.w };
+
+	drawables.push_back(Drawable(
+		new ColorMat(vec3(1.f, 0.f, 0.f)),
+		new SimpleGeometry(arr, 3, GL_LINE_STRIP)));
+	drawables.push_back(Drawable(
+		new ColorMat(vec3(1.f, 1.f, 1.f)),
+		new SimpleGeometry(arr2, 2, GL_LINE_STRIP)));
+	drawables.push_back(Drawable(
+		new ColorMat(vec3(0.f, 1.f, 0.f)),
+		new SimpleGeometry(points.data(), points.size(), GL_POINTS)));
+
+
+}
+
+void generateSingleCurve2(vector<Drawable>& drawables, int numDivisions) {
+	for (int i = 0; i < drawables.size(); i++) {
+		drawables[i].deleteMaterialsAndGeometry();
+	}
+	drawables.clear();
+
+	vec3 a = vec3(-0.5f, -0.5f, 1.f);
+	vec3 b = vec3(-0.5f, 0.5f, 1.f);
+	vec3 c = vec3(0.5f, 0.5f, 1.f);
+
+	float w = 2.f;
+	bezier<vec3> curve({ a, b*w, c});
+
+	vec3 arr[3] = { a, b, c };
+
+	vector<vec3> points3D = curve.getQuadPoints(numDivisions);
+	vector<vec3> points;
+	for (int i = 0; i < points3D.size(); i++) {
+		vec3 &p = points3D[i];
+		points.push_back(p / p.z);
+	}
+
+	float s = curveProgress; //sqrt(w*w*(curveProgress*curveProgress) + (w-1)*(w-1));
+	float w2 = (1 + w*s) / (1 + w);
+	float s2 = sqrt(w2*w2*s*s + (w2 - 1)*(w2 - 1)) / sqrt(w*w + (w - 1)*(w - 1));
+
+	//Brute force method
+	vec3 sPoint = a + s*(b - a);
+	vec4 sPointW = vec4(sPoint, 1)*(1 + (w - 1)*s);
+	float lengthW = length(vec4(a, 1) - sPointW);
+	float sW = lengthW / length(vec4(a, 1) - vec4(b, 1)*w);
+	printf("s = %f\nsW = %f\n", s, sW);
+
+	float u = 1 - sqrt(1 - sW);
+	//	u = sqrt(w*w*u*u + (w - 1)*(w - 1))/sqrt(w*w + (w-1)*(w-1));
+
+	//	printf("s = %f\nu = %f\n\n", s, u);
+
+	vec3 p1 = a + (b - a)*s;
+	vec3 p2 = curve.getQuadPoint(u);
+
+	vec3 arr2[2] = { p1, p2 / p2.z };
+
+	drawables.push_back(Drawable(
+		new ColorMat(vec3(1.f, 0.f, 0.f)),
+		new SimpleGeometry(arr, 3, GL_LINE_STRIP)));
+	drawables.push_back(Drawable(
+		new ColorMat(vec3(1.f, 0.f, 0.f)),
+		new SimpleGeometry(curve.control.data(), 3, GL_LINE_STRIP)));
+	drawables.push_back(Drawable(
+		new ColorMat(vec3(1.f, 1.f, 1.f)),
+		new SimpleGeometry(arr2, 2, GL_LINE_STRIP)));
+	drawables.push_back(Drawable(
+		new ColorMat(vec3(0.f, 1.f, 0.f)),
+		new SimpleGeometry(points.data(), points.size(), GL_POINTS)));
+	drawables.push_back(Drawable(
+		new ColorMat(vec3(0.f, 1.f, 0.f)),
+		new SimpleGeometry(points3D.data(), points3D.size(), GL_POINTS)));
+
+
+}
 	
 void WindowManager::mainLoop() {
 
@@ -300,10 +428,11 @@ void WindowManager::mainLoop() {
 
 	vector<Drawable> drawables;
 
-	generateBlendedCurves(drawables, 20, 20, 0.1f);
+	generateSingleCurve2(drawables, 20);
 
 	int lastCurvePicked = curvePicker;
-
+	float lastCurveProgress = curveProgress;
+	
 	SimpleShader shader;
 
 	vec3 lightPos(10.f, 10.f, 10.f);
@@ -313,6 +442,10 @@ void WindowManager::mainLoop() {
 		if (curvePicker != lastCurvePicked) {
 			generateBlendedCurves(drawables, 20, 20, 0.1f);
 			lastCurvePicked = curvePicker;
+		}
+		if (curveProgress != lastCurveProgress) {
+			generateSingleCurve(drawables, 20, 0.1f);
+			lastCurveProgress = curveProgress;
 		}
 
 		if (windowResized) {

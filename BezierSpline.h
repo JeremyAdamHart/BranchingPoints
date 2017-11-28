@@ -43,7 +43,7 @@ public:
 
 	V getQuadPoint(float u){		//Faster implementation for quadratic curves{
 		if (control.size() >= 3)
-			return (1 - u)*(1 - u)*control[0] + (1 - u)*u*control[1] + u*u*control[2];
+			return (1 - u)*(1 - u)*control[0] + 2.f*(1 - u)*u*control[1] + u*u*control[2];
 		else
 			return V();
 	}
