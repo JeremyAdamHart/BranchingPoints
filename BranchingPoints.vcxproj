@@ -157,11 +157,13 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BSplineSkinner.h" />
     <ClInclude Include="BezierSpline.h" />
     <ClInclude Include="GLWindow.h" />
     <ClInclude Include="Skeleton.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BSplineSkinner.cpp" />
     <ClCompile Include="GLWindow.cpp" />
     <ClCompile Include="BranchingPoints.cpp" />
     <ClCompile Include="Skeleton.cpp" />
