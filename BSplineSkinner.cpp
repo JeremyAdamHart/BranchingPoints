@@ -22,6 +22,13 @@ BasisPair getFrame(vec3 v1, vec3 v2) {
 	ret.by2 = cross(v2, ret.bx);
 }
 
+//Performs line intersection by looking for closest point to deal with floating point inaccuracy
+template<V> V lineIntersection(V p1, V l1, V p2, V l2) {
+	float s =	(dot(l1, p2) - dot(l1, p1) - dot(l1, l2)*(dot(l2, p2) - dot(l2, p1)) /
+				(1 - dot(l1, l2)*dot(l1, l2));
+	return p1 + l1*s;
+}
+
 void BSplineSkinner::generateCurve(Joint *joint, int link) {
 	
 }
