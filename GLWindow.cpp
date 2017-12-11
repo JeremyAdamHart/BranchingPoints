@@ -11,6 +11,8 @@ using namespace std;
 #include "ColorMat.h"
 #include "TrackballCamera.h"
 #include "BezierSpline.h"
+#include "Skeleton.h"
+#include "BSplineSkinner.h"
 #include <sstream>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -379,6 +381,135 @@ void generateSingleCurve2(vector<Drawable>& drawables, int numDivisions) {
 
 
 }
+
+vector<Drawable> toDrawable(bezier<vec4> curve, int numPoints, vec3 controlColor, vec3 pointsColor) {
+	vector<vec3> points3D;
+	vector<vec3> control3D;
+
+	for (int i = 0; i < curve.control.size(); i++) {
+		vec4 p = curve.control[i];
+		control3D.push_back(p/p.w);
+	}
+
+	vector<vec4> points = curve.getQuadPoints(numPoints);
+
+	for (int i = 0; i < points.size(); i++) {
+		vec4 p = points[i];
+		points3D.push_back(p / p.w);
+	}
+
+	vector<Drawable> drawables;
+/*
+	drawables.push_back(Drawable(
+		new ColorMat(controlColor),
+		new SimpleGeometry(control3D.data(), control3D.size(), GL_LINE_STRIP)));
+
+	drawables.push_back(Drawable(
+		new ColorMat(pointsColor),
+		new SimpleGeometry(points3D.data(), points3D.size(), GL_LINE_STRIP)));
+//*/		
+	return drawables;
+}
+
+void generateCurveFromSkeleton(vector<Drawable> &drawables, Joint *joint, float radius, int numCurves, int sDivisions) {
+	for (int i = 0; i < drawables.size(); i++) {
+		drawables[i].deleteMaterialsAndGeometry();
+	}
+
+	drawables.clear();
+	
+	vec3 offset = vec3(1, 1, 1)*0.001f;
+	vector<vec3> points;
+
+	for (int l = 0; l < joint->links.size(); l++) {
+
+		float theta = 0;
+		float thetaStep = 2.f*M_PI / float(numCurves - 1);
+		for (int i = 0; i < numCurves; i++) {
+			float s = 0.f;
+			float sStep = 1.f / float(sDivisions - 1);
+
+			points.push_back(generatePoint(joint, l, s, radius, theta)+offset);
+			for (int j = 0; j < sDivisions; j++) {
+				points.push_back(generatePoint(joint, l, s, radius, theta)+offset);
+				points.push_back(generatePoint(joint, l, s, radius, theta)+offset);
+				s += sStep;
+			}
+			points.push_back(generatePoint(joint, l, s, radius, theta)+offset);
+
+			theta += thetaStep;
+		}
+
+//		points.clear();
+
+
+
+		drawables.push_back(Drawable(
+			new ColorMat(vec3(1, 1, 1)),
+			new SimpleGeometry(points.data(), points.size(), GL_LINES)));
+
+		for (int i = 0; i < numCurves; i++) {
+			vector<bezier<vec4>> curveSet = getCurveSet(joint, l, radius, theta);
+
+			for (int j = 0; j < curveSet.size(); j++) {
+				vector<Drawable> newDrawables = toDrawable(curveSet[j], 20, vec3(0.5f, 0, 0), vec3(0, 1, 0));
+				drawables.insert(drawables.end(), newDrawables.begin(), newDrawables.end());
+			}
+			theta += thetaStep;
+		}
+	}
+	
+}
+
+void generateSurfaceFromSkeleton(vector<Drawable> &drawables, Joint *joint, float radius, int numCurves, int sDivisions) {
+	for (int i = 0; i < drawables.size(); i++) {
+		drawables[i].deleteMaterialsAndGeometry();
+	}
+
+	drawables.clear();
+
+	vec3 offset = vec3(1, 1, 1)*0.001f;
+	vector<vec3> points;
+
+	for (int l = 0; l < joint->links.size(); l++) {
+
+		float theta = 0;
+		float thetaStep = 2.f*M_PI / float(numCurves - 1);
+		for (int i = 0; i < numCurves; i++) {
+			float s = 0.f;
+			float sStep = 1.f / float(sDivisions - 1);
+
+			points.push_back(generatePoint(joint, l, s, radius, theta) + offset);
+			for (int j = 0; j < sDivisions; j++) {
+				points.push_back(generatePoint(joint, l, s, radius, theta) + offset);
+				points.push_back(generatePoint(joint, l, s, radius, theta) + offset);
+				s += sStep;
+			}
+			points.push_back(generatePoint(joint, l, s, radius, theta) + offset);
+
+			theta += thetaStep;
+		}
+
+		//		points.clear();
+
+
+
+		drawables.push_back(Drawable(
+			new ColorMat(vec3(1, 1, 1)),
+			new SimpleGeometry(points.data(), points.size(), GL_LINES)));
+
+		for (int i = 0; i < numCurves; i++) {
+			vector<bezier<vec4>> curveSet = getCurveSet(joint, l, radius, theta);
+
+			for (int j = 0; j < curveSet.size(); j++) {
+				vector<Drawable> newDrawables = toDrawable(curveSet[j], 20, vec3(0.5f, 0, 0), vec3(0, 1, 0));
+				drawables.insert(drawables.end(), newDrawables.begin(), newDrawables.end());
+			}
+			theta += thetaStep;
+		}
+	}
+
+}
 	
 void WindowManager::mainLoop() {
 
@@ -390,7 +521,18 @@ void WindowManager::mainLoop() {
 
 	vector<Drawable> drawables;
 
-	generateSingleCurve2(drawables, 20);
+	//generateSingleCurve2(drawables, 20);
+
+	Joint center(vec3(0, 0, 0));
+	Joint a(normalize(vec3(1, -0.f, 0)));
+	Joint b(vec3(0, 1, 0));
+	Joint c(vec3(0, 0, 1));
+
+	center.addLink(&a);
+	center.addLink(&b);
+	center.addLink(&c);
+
+	generateCurveFromSkeleton(drawables, &center, 0.2f, 40, 40);
 
 	int lastCurvePicked = curvePicker;
 	float lastCurveProgress = curveProgress;
