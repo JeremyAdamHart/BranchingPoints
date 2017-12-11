@@ -77,6 +77,8 @@ vec3 generatePoint(Joint *joint, int link, float s, float radius, float theta) {
 	vec3 sharedPoint = p1 + s*(pEnd - p1);
 	vec3 blendedPoint = sharedPoint;
 	float valid = 1.f;
+	float totalWeight = 0.f;
+	vec3 offsets(0.f, 0.f, 0.f);
 
 	for (int i = 0; i < curveSet.size(); i++) {
 		vec4 p2 = curveSet[i].control[1];
@@ -86,7 +88,13 @@ vec3 generatePoint(Joint *joint, int link, float s, float radius, float theta) {
 			valid = 0.f;
 		vec4 curvePoint = curveSet[i].getQuadPoint(u);
 		blendedPoint += vec3(curvePoint)/curvePoint.w - sharedPoint;
+		vec3 offset = vec3(curvePoint) / curvePoint.w - sharedPoint;
+		totalWeight += length(offset);
+		offsets += offset*length(offset);
 	}
+	if (totalWeight < 0.001f)
+		return sharedPoint;
+	return valid*(sharedPoint + offsets / totalWeight);
 
 	return blendedPoint*valid;
 }

@@ -524,13 +524,15 @@ void WindowManager::mainLoop() {
 	//generateSingleCurve2(drawables, 20);
 
 	Joint center(vec3(0, 0, 0));
-	Joint a(normalize(vec3(1, -0.f, 0)));
+	Joint a(normalize(vec3(1, -0.9f, 0)));
 	Joint b(vec3(0, 1, 0));
 	Joint c(vec3(0, 0, 1));
+	Joint d(normalize(vec3(-1, -1, -1)));
 
 	center.addLink(&a);
 	center.addLink(&b);
 	center.addLink(&c);
+	center.addLink(&d);
 
 	generateCurveFromSkeleton(drawables, &center, 0.2f, 40, 40);
 
