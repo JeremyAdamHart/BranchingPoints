@@ -84,7 +84,7 @@ vec3 generatePoint(Joint *joint, int link, float s, float radius, float theta) {
 		vec4 p2 = curveSet[i].control[1];
 		float sRatio = baseLength / length(p1 - vec3(p2)/p2.w);
 		float u = getUFromS2(s*sRatio, p2.w);
-		if (u > 0.5f)
+		if (u > 1.f)
 			valid = 0.f;
 		vec4 curvePoint = curveSet[i].getQuadPoint(u);
 		blendedPoint += vec3(curvePoint)/curvePoint.w - sharedPoint;

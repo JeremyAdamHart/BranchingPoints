@@ -15,6 +15,10 @@ using namespace std;
 #include "BSplineSkinner.h"
 #include <sstream>
 
+#include <ShadedMat.h>
+#include <ElementGeometry.h>
+#include <TorranceSparrowShader.h>
+
 #include <glm/gtc/matrix_transform.hpp>
 
 using namespace renderlib;
@@ -461,6 +465,35 @@ void generateCurveFromSkeleton(vector<Drawable> &drawables, Joint *joint, float 
 	
 }
 
+Drawable positionsAndFacesToDrawable(vector<vec3> positions, vector<unsigned int> faces, vec3 color, bool flip=false) {
+	vector<vec3> normals;
+	normals.resize(positions.size(), vec3(0));
+
+	float sign = (flip) ? -1.f : 1.f;
+
+	for (int i = 0; i + 2 < faces.size(); i += 3) {
+		vec3 a = positions[faces[i]];
+		vec3 b = positions[faces[i + 1]];
+		vec3 c = positions[faces[i + 2]];
+
+		vec3 normal = normalize(cross(b - a, c - a));
+		
+		normals[faces[i]] += normal;
+		normals[faces[i + 1]] += normal;
+		normals[faces[i + 2]] += normal;
+	}
+
+	for(int i=0; i<normals.size(); i++)
+		normals[i] = sign*normalize(normals[i]);
+
+	Drawable drawable (
+		new ColorMat(color),
+		new ElementGeometry(positions.data(), normals.data(), nullptr, faces.data(), positions.size(), faces.size(), GL_TRIANGLES));
+
+	drawable.addMaterial(new ShadedMat(0.5f, 0.5f, 0.5f, 2.f));
+	return drawable;
+}
+
 void generateSurfaceFromSkeleton(vector<Drawable> &drawables, Joint *joint, float radius, int numCurves, int sDivisions) {
 	for (int i = 0; i < drawables.size(); i++) {
 		drawables[i].deleteMaterialsAndGeometry();
@@ -477,26 +510,41 @@ void generateSurfaceFromSkeleton(vector<Drawable> &drawables, Joint *joint, floa
 		float thetaStep = 2.f*M_PI / float(numCurves - 1);
 		for (int i = 0; i < numCurves; i++) {
 			float s = 0.f;
-			float sStep = 1.f / float(sDivisions - 1);
+			float sStep = 2.f / float(sDivisions - 1);	
 
-			points.push_back(generatePoint(joint, l, s, radius, theta) + offset);
 			for (int j = 0; j < sDivisions; j++) {
-				points.push_back(generatePoint(joint, l, s, radius, theta) + offset);
 				points.push_back(generatePoint(joint, l, s, radius, theta) + offset);
 				s += sStep;
 			}
-			points.push_back(generatePoint(joint, l, s, radius, theta) + offset);
 
 			theta += thetaStep;
 		}
 
-		//		points.clear();
+		vector<unsigned int> faces;
 
+		//Create faces
+		for (int i = 1; i < numCurves; i++) {
+			for (int j = 1; j < sDivisions; j++) {
+				faces.push_back((i - 1)*sDivisions + j - 1);
+				faces.push_back((i-1)*sDivisions + j);
+				faces.push_back(i*sDivisions + j - 1);
 
+				faces.push_back(i*sDivisions + j);
+				faces.push_back(i*sDivisions + j - 1);
+				faces.push_back((i - 1)*sDivisions + j);
+			}
+		}
 
-		drawables.push_back(Drawable(
+		if(l != 2)
+			drawables.push_back(positionsAndFacesToDrawable(points, faces, vec3(0.5, 0.3, 0.8), true));
+
+		points.clear();
+
+		/*drawables.push_back(Drawable(
 			new ColorMat(vec3(1, 1, 1)),
-			new SimpleGeometry(points.data(), points.size(), GL_LINES)));
+			new SimpleGeometry(points.data(), points.size(), GL_LINES)));*/
+
+		theta = 0.f;
 
 		for (int i = 0; i < numCurves; i++) {
 			vector<bezier<vec4>> curveSet = getCurveSet(joint, l, radius, theta);
@@ -515,6 +563,8 @@ void WindowManager::mainLoop() {
 
 	glPointSize(3.f);
 
+//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 	glfwSetKeyCallback(window, keyCallback);
 	glfwSetWindowSizeCallback(window, windowResizeCallback);
 	//glfwSetCursorPosCallback(window, cursorPositionCallback);
@@ -524,7 +574,7 @@ void WindowManager::mainLoop() {
 	//generateSingleCurve2(drawables, 20);
 
 	Joint center(vec3(0, 0, 0));
-	Joint a(normalize(vec3(1, -0.9f, 0)));
+	Joint a(normalize(vec3(1, -0.f, 0))*1.f);
 	Joint b(vec3(0, 1, 0));
 	Joint c(vec3(0, 0, 1));
 	Joint d(normalize(vec3(-1, -1, -1)));
@@ -532,15 +582,16 @@ void WindowManager::mainLoop() {
 	center.addLink(&a);
 	center.addLink(&b);
 	center.addLink(&c);
-	center.addLink(&d);
+//	center.addLink(&d);
 
-	generateCurveFromSkeleton(drawables, &center, 0.2f, 40, 40);
+	generateSurfaceFromSkeleton(drawables, &center, 0.2f, 40, 100);
 
 	int lastCurvePicked = curvePicker;
 	float lastCurveProgress = curveProgress;
 	int lastMode = mode;
 	
 	SimpleShader shader;
+	TorranceSparrowShader tsShader;
 
 	vec3 lightPos(10.f, 10.f, 10.f);
 
@@ -586,6 +637,7 @@ void WindowManager::mainLoop() {
 
 		for (int i = 0; i < drawables.size(); i++) {
 			shader.draw(cam, drawables[i]);
+			tsShader.draw(cam, vec3(10.f, 10.f, 10.f), drawables[i]);
 		}
 
 		glfwSwapBuffers(window);
