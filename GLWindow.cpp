@@ -535,7 +535,7 @@ void generateSurfaceFromSkeleton(vector<Drawable> &drawables, Joint *joint, floa
 			}
 		}
 
-		if(l != 2)
+	//	if(l != 2)
 			drawables.push_back(positionsAndFacesToDrawable(points, faces, vec3(0.5, 0.3, 0.8), true));
 
 		points.clear();
@@ -574,7 +574,7 @@ void WindowManager::mainLoop() {
 	//generateSingleCurve2(drawables, 20);
 
 	Joint center(vec3(0, 0, 0));
-	Joint a(normalize(vec3(1, -0.f, 0))*1.f);
+	Joint a(normalize(vec3(1, 0, 0))*1.f);
 	Joint b(vec3(0, 1, 0));
 	Joint c(vec3(0, 0, 1));
 	Joint d(normalize(vec3(-1, -1, -1)));
