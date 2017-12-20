@@ -108,7 +108,8 @@ float Skeleton::convertAngle(int linkA, int linkB, float theta) {
 		vec3 v2 = normalize(joint->links[linkB].dir());
 		BasisPair basis = getFrame(v1, v2);
 
-		float thetaDiff = getAngle(basis.bx, bases[linkA].bx, v1);
-		return convertAngle(0, linkB, -theta - thetaDiff);
+		float thetaDiff1 = getAngle(basis.bx, bases[linkA].bx, v1);
+		float thetaDiff2 = getAngle(basis.bx, bases[linkB].bx, v2);
+		return  -theta - thetaDiff1 - thetaDiff2;
 	}
 }

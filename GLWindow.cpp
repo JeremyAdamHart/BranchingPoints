@@ -576,7 +576,7 @@ void generateSurfaceFromSkeletonUBlend(vector<Drawable> &drawables, Skeleton *sk
 		float thetaStep = 2.f*M_PI / float(numCurves - 1);
 		for (int i = 0; i < numCurves; i++) {
 			float u = 0.f;
-			float uStep = 1.f / float(uDivisions - 1);
+			float uStep = 0.5f / float(uDivisions - 1);
 
 			for (int j = 0; j < uDivisions; j++) {
 				points.push_back(blendPair(skeleton, l, linkA, linkB, u, theta) + offset);
@@ -601,7 +601,7 @@ void generateSurfaceFromSkeletonUBlend(vector<Drawable> &drawables, Skeleton *sk
 			}
 		}
 
-		if(l == 2)
+//		if(l == 0)
 		drawables.push_back(positionsAndFacesToDrawable(points, faces, vec3(0.5, 0.3, 0.8), true));
 
 		points.clear();
