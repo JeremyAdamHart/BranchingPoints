@@ -558,6 +558,72 @@ void generateSurfaceFromSkeleton(vector<Drawable> &drawables, Joint *joint, floa
 	}
 
 }
+
+void generateSurfaceFromSkeletonUBlend(vector<Drawable> &drawables, Skeleton *skeleton, int numCurves, int uDivisions) {
+	for (int i = 0; i < drawables.size(); i++) {
+		drawables[i].deleteMaterialsAndGeometry();
+	}
+
+	drawables.clear();
+
+	vec3 offset = vec3(1, 1, 1)*0.001f;
+	vector<vec3> points;
+
+	for (int l = 0; l < 1; /*skeleton->joint->links.size();*/ l++) {
+		int linkA = (l + 1) % skeleton->joint->links.size();
+		int linkB = (l + 2) % skeleton->joint->links.size();
+		float theta = 0;
+		float thetaStep = 2.f*M_PI / float(numCurves - 1);
+		for (int i = 0; i < numCurves; i++) {
+			float u = 0.f;
+			float uStep = 1.f / float(uDivisions - 1);
+
+			for (int j = 0; j < uDivisions; j++) {
+				points.push_back(blendPair(skeleton, l, linkA, linkB, u, theta) + offset);
+				u += uStep;
+			}
+
+			theta += thetaStep;
+		}
+
+		vector<unsigned int> faces;
+
+		//Create faces
+		for (int i = 1; i < numCurves; i++) {
+			for (int j = 1; j < uDivisions; j++) {
+				faces.push_back((i - 1)*uDivisions + j - 1);
+				faces.push_back((i - 1)*uDivisions + j);
+				faces.push_back(i*uDivisions + j - 1);
+
+				faces.push_back(i*uDivisions + j);
+				faces.push_back(i*uDivisions + j - 1);
+				faces.push_back((i - 1)*uDivisions + j);
+			}
+		}
+
+		//		if(l != 2)
+		drawables.push_back(positionsAndFacesToDrawable(points, faces, vec3(0.5, 0.3, 0.8), true));
+
+		points.clear();
+
+		/*drawables.push_back(Drawable(
+		new ColorMat(vec3(1, 1, 1)),
+		new SimpleGeometry(points.data(), points.size(), GL_LINES)));*/
+
+		theta = 0.f;
+
+		for (int i = 0; i < numCurves; i++) {
+			vector<bezier<vec4>> curveSet = getCurveSet(skeleton->joint, l, skeleton->radius, theta);
+
+			for (int j = 0; j < curveSet.size(); j++) {
+				vector<Drawable> newDrawables = toDrawable(curveSet[j], 20, vec3(0.5f, 0, 0), vec3(0, 1, 0));
+				drawables.insert(drawables.end(), newDrawables.begin(), newDrawables.end());
+			}
+			theta += thetaStep;
+		}
+	}
+
+}
 	
 void WindowManager::mainLoop() {
 
@@ -584,7 +650,10 @@ void WindowManager::mainLoop() {
 	center.addLink(&c);
 //	center.addLink(&d);
 
-	generateSurfaceFromSkeleton(drawables, &center, 0.2f, 40, 100);
+	Skeleton skeleton(&center);
+
+//	generateSurfaceFromSkeleton(drawables, &center, 0.2f, 40, 100);
+	generateSurfaceFromSkeletonUBlend(drawables, &skeleton, 40, 100);
 
 	int lastCurvePicked = curvePicker;
 	float lastCurveProgress = curveProgress;

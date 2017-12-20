@@ -37,11 +37,13 @@ public:
 	std::vector<BasisPair> bases;
 	float radius;
 
-	Skeleton(Joint *joint);
+	Skeleton(Joint *joint, float radius=0.2f);
 
-	std::vector<bezier<vec4>> getCurveSet(int link, float theta);
+	std::vector<bezier<glm::vec4>> getCurveSet(int link, float theta);
 	glm::vec3 getEndpoint(int link, float theta);
 	float convertAngle(int linkA, int linkB, float theta);
+	glm::vec3 getDir(int link, float theta);
+	glm::vec3 getDir(int link);
 };
 
 //Performs line intersection by looking for closest point to deal with floating point inaccuracy

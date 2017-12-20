@@ -38,7 +38,19 @@ vec3 Skeleton::getEndpoint(int link, float theta) {
 	return joint->links[link].b->pos + (bx*cos(newTheta) + by*sin(newTheta))*radius;
 }
 
-Skeleton::Skeleton(Joint *joint) :joint(joint) {
+vec3 Skeleton::getDir(int link, float theta) {
+	float newTheta = convertAngle(0, link, theta);
+	vec3 bx = bases[link].bx;
+	vec3 by = (link == 0) ? bases[link].by1 : bases[link].by2;
+
+	return normalize(bx*cos(newTheta) + by*sin(newTheta));
+}
+
+vec3 Skeleton::getDir(int link) {
+	return normalize(joint->links[link].dir());
+}
+
+Skeleton::Skeleton(Joint *joint, float radius) :joint(joint), radius(radius) {
 	vec3 center1 = joint->links[0].b->pos;
 	vec3 lA = normalize(joint->links[0].dir());
 	int n = joint->links.size();
@@ -70,7 +82,8 @@ std::vector<bezier<vec4>> Skeleton::getCurveSet(int link, float theta) {
 		vec3 dir = normalize(p3 - joint->links[i].b->pos);
 		vec3 perp2 = normalize(cross(perp, lB));
 
-		float w = 1.f / max(dot(dir, perp2), 0.0001f);
+//		float w = 1.f / max(dot(dir, perp2), 0.0001f);
+		float w = 1.f / max(dot(getDir(link, theta), getDir(i)), 0.0001f);
 		curveSet.push_back(bezier<vec4>({ vec4(p1, 1), vec4(p2, 1)*w, vec4(p3, 1) }));
 	}
 

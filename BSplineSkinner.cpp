@@ -99,17 +99,25 @@ vector<BasisPair> getBases(Joint *joint, int link) {
 	return bases;
 }
 
-//Assumes joint only includes three relevant links with 0 being the pivot
 vec3 blendPair(Skeleton *skeleton, int pivot, int linkA, int linkB, float u, float theta) {
-	
-	int indexA = 
+	int n = skeleton->joint->links.size();
+	//Get number of indices after pivot in curve set
+	int indexA = (linkA > pivot) ? linkA - pivot - 1 : n - pivot + linkA - 1;
+	int indexB = (linkB > pivot) ? linkB - pivot - 1 : n - pivot + linkB - 1;
 
 	vector<bezier<vec4>> curveSet = skeleton->getCurveSet(pivot, theta);
 
-	curveSet
+	vec4 pA = curveSet[indexA].getQuadPoint(u);
+	vec4 pB = curveSet[indexB].getQuadPoint(u);
+	float wA = max(dot(skeleton->getDir(pivot, theta), skeleton->getDir(linkA)), 0.f);
+	float wB = max(dot(skeleton->getDir(pivot, theta), skeleton->getDir(linkB)), 0.f);
 
-	return vec3();
+	if (wA*wA + wB*wB < 0.0001f)
+		return 0.5f*(vec3(pA)/pA.w + vec3(pB) / pB.w);
+	else
+		return (wA*wA*vec3(pA)/pA.w + wB*wB*vec3(pB)/pB.w)/(wA*wA+wB*wB);
 }
+
 /*
 vec3 generatePoint(Joint *joint, int link, float u, float radius, float theta) {
 	vector<bezier<vec4>> curveSet = getCurveSet(joint, link, radius, theta);
