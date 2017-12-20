@@ -535,7 +535,7 @@ void generateSurfaceFromSkeleton(vector<Drawable> &drawables, Joint *joint, floa
 			}
 		}
 
-	//	if(l != 2)
+//		if(l != 2)
 			drawables.push_back(positionsAndFacesToDrawable(points, faces, vec3(0.5, 0.3, 0.8), true));
 
 		points.clear();
