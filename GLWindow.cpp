@@ -569,7 +569,7 @@ void generateSurfaceFromSkeletonUBlend(vector<Drawable> &drawables, Skeleton *sk
 	vec3 offset = vec3(1, 1, 1)*0.001f;
 	vector<vec3> points;
 
-	for (int l = 0; l < 1; /*skeleton->joint->links.size();*/ l++) {
+	for (int l = 0; l < skeleton->joint->links.size(); l++) {
 		int linkA = (l + 1) % skeleton->joint->links.size();
 		int linkB = (l + 2) % skeleton->joint->links.size();
 		float theta = 0;
@@ -601,7 +601,7 @@ void generateSurfaceFromSkeletonUBlend(vector<Drawable> &drawables, Skeleton *sk
 			}
 		}
 
-		//		if(l != 2)
+		if(l == 2)
 		drawables.push_back(positionsAndFacesToDrawable(points, faces, vec3(0.5, 0.3, 0.8), true));
 
 		points.clear();
@@ -645,12 +645,23 @@ void WindowManager::mainLoop() {
 	Joint c(vec3(0, 0, 1));
 	Joint d(normalize(vec3(-1, -1, -1)));
 
-	center.addLink(&a);
 	center.addLink(&b);
 	center.addLink(&c);
+	center.addLink(&a);
 //	center.addLink(&d);
 
 	Skeleton skeleton(&center);
+
+	//Test angle conversions
+	float r0 = skeleton.convertAngle(0, 1, 0);
+	float rp0_5 = skeleton.convertAngle(0, 1, M_PI*0.5f);
+	float rnp0_5 = skeleton.convertAngle(0, 2, 0.f);
+	float rnp = skeleton.convertAngle(0, 2, M_PI*0.5f);
+	float rnp2 = skeleton.convertAngle(1, 2, 0.f);
+	float rp0_53 = skeleton.convertAngle(1, 2, M_PI*0.5f);
+	float r02 = skeleton.convertAngle(1, 2, M_PI);
+	float rip0_5 = skeleton.convertAngle(2, 0, M_PI);
+	float ripi = skeleton.convertAngle(2, 1, 0.f);
 
 //	generateSurfaceFromSkeleton(drawables, &center, 0.2f, 40, 100);
 	generateSurfaceFromSkeletonUBlend(drawables, &skeleton, 40, 100);

@@ -111,9 +111,10 @@ vec3 blendPair(Skeleton *skeleton, int pivot, int linkA, int linkB, float u, flo
 	vec4 pB = curveSet[indexB].getQuadPoint(u);
 	float wA = max(dot(skeleton->getDir(pivot, theta), skeleton->getDir(linkA)), 0.f);
 	float wB = max(dot(skeleton->getDir(pivot, theta), skeleton->getDir(linkB)), 0.f);
-
+//	wB = 0.f;
 	if (wA*wA + wB*wB < 0.0001f)
 		return 0.5f*(vec3(pA)/pA.w + vec3(pB) / pB.w);
+//		return vec3(pA)/pA.w;
 	else
 		return (wA*wA*vec3(pA)/pA.w + wB*wB*vec3(pB)/pB.w)/(wA*wA+wB*wB);
 }

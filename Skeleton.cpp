@@ -31,15 +31,18 @@ vec3 getCirclePoint(vec3 center, vec3 bx, vec3 by, float radius, float theta) {
 	return center + (bx*cos(theta) + by*sin(theta))*radius;
 }
 
+//TODO: Reconsider what space angles are passed
 vec3 Skeleton::getEndpoint(int link, float theta) {
-	float newTheta = convertAngle(0, link, theta);
+//	float newTheta = convertAngle(0, link, theta);
+	float newTheta = theta;
 	vec3 bx = bases[link].bx;
 	vec3 by = (link == 0) ? bases[link].by1 : bases[link].by2;
 	return joint->links[link].b->pos + (bx*cos(newTheta) + by*sin(newTheta))*radius;
 }
 
 vec3 Skeleton::getDir(int link, float theta) {
-	float newTheta = convertAngle(0, link, theta);
+//	float newTheta = convertAngle(0, link, theta);
+	float newTheta = theta;
 	vec3 bx = bases[link].bx;
 	vec3 by = (link == 0) ? bases[link].by1 : bases[link].by2;
 
@@ -64,7 +67,8 @@ Skeleton::Skeleton(Joint *joint, float radius) :joint(joint), radius(radius) {
 
 std::vector<bezier<vec4>> Skeleton::getCurveSet(int link, float theta) {
 	vector<bezier<vec4>> curveSet;
-	float linkTheta = convertAngle(0, link, theta);
+//	float linkTheta = convertAngle(0, link, theta);
+	float linkTheta = theta;
 
 	vec3 center1 = joint->links[link].b->pos;
 	vec3 lA = normalize(joint->links[link].dir());
@@ -74,7 +78,7 @@ std::vector<bezier<vec4>> Skeleton::getCurveSet(int link, float theta) {
 	for (int i = (link + 1) % n; i != link; i = (i + 1) % n) {
 		float newTheta = convertAngle(link, i, linkTheta);
 		vec3 lB = normalize(joint->links[i].dir());
-		vec3 p3 = getEndpoint(i, theta);
+		vec3 p3 = getEndpoint(i, newTheta);
 		vec3 p2 = lineIntersection(p1, lA, p3, lB);
 
 		//Get angle for w
@@ -105,6 +109,6 @@ float Skeleton::convertAngle(int linkA, int linkB, float theta) {
 		BasisPair basis = getFrame(v1, v2);
 
 		float thetaDiff = getAngle(basis.bx, bases[linkA].bx, v1);
-		return convertAngle(-theta+thetaDiff, 0, linkB);
+		return convertAngle(0, linkB, -theta - thetaDiff);
 	}
 }
