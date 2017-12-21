@@ -576,10 +576,13 @@ void generateSurfaceFromSkeletonUBlend(vector<Drawable> &drawables, Skeleton *sk
 		float thetaStep = 2.f*M_PI / float(numCurves - 1);
 		for (int i = 0; i < numCurves; i++) {
 			float u = 0.f;
-			float uStep = 0.5f / float(uDivisions - 1);
+			float uStep = 0.6f / float(uDivisions - 1);
+
+			float tSign = (l != 0) ? -1.f : 1.f;
 
 			for (int j = 0; j < uDivisions; j++) {
-				points.push_back(blendPair(skeleton, l, linkA, linkB, u, theta) + offset);
+//				points.push_back(blendPair(skeleton, l, linkA, linkB, u, tSign*theta) + offset);
+				points.push_back(generateBlendedPoint(skeleton, l, u, tSign*theta) + offset);
 				u += uStep;
 			}
 
@@ -601,7 +604,7 @@ void generateSurfaceFromSkeletonUBlend(vector<Drawable> &drawables, Skeleton *sk
 			}
 		}
 
-//		if(l == 0)
+//		if(l == 1)
 		drawables.push_back(positionsAndFacesToDrawable(points, faces, vec3(0.5, 0.3, 0.8), true));
 
 		points.clear();
@@ -624,8 +627,29 @@ void generateSurfaceFromSkeletonUBlend(vector<Drawable> &drawables, Skeleton *sk
 	}
 
 }
+
+vec3 testFunction(vec2 point) {
+	vec2 l12(cos(M_PI / 3.f), sin(M_PI / 3.f));
+	vec2 l23(cos(-M_PI / 3.f), sin(-M_PI / 3.f));
+	vec2 l31(cos(M_PI), sin(M_PI));
+	
+	vec2 lp12(-l12.y, l12.x);
+	vec2 lp23(-l23.y, l23.x);
+	vec2 lp31(-l31.y, l31.x);
+
+	//Calcuate value 1
+	float a = dot(lp12, point) - dot(lp31, point);
+	float b = dot(lp23, point) - dot(lp12, point);
+	float c = dot(lp31, point) - dot(lp23, point);
+
+	return vec3(a, b, c);
+}
 	
 void WindowManager::mainLoop() {
+
+	vec3 a1 = testFunction(vec2(cos(M_PI / 3.f), sin(M_PI / 3.f)));
+	vec3 a2 = testFunction(vec2(cos(M_PI), sin(M_PI))*2.f);
+	vec3 a3 = testFunction(vec2(cos(-M_PI / 3.f), sin(-M_PI / 3.f))*0.5f);
 
 	glPointSize(3.f);
 
@@ -651,17 +675,6 @@ void WindowManager::mainLoop() {
 //	center.addLink(&d);
 
 	Skeleton skeleton(&center);
-
-	//Test angle conversions
-	float r0 = skeleton.convertAngle(0, 1, 0);
-	float rp0_5 = skeleton.convertAngle(0, 1, M_PI*0.5f);
-	float rnp0_5 = skeleton.convertAngle(0, 2, 0.f);
-	float rnp = skeleton.convertAngle(0, 2, M_PI*0.5f);
-	float rnp2 = skeleton.convertAngle(1, 2, 0.f);
-	float rp0_53 = skeleton.convertAngle(1, 2, M_PI*0.5f);
-	float r02 = skeleton.convertAngle(1, 2, M_PI);
-	float rip0_5 = skeleton.convertAngle(2, 0, M_PI);
-	float ripi = skeleton.convertAngle(2, 1, 0.f);
 
 //	generateSurfaceFromSkeleton(drawables, &center, 0.2f, 40, 100);
 	generateSurfaceFromSkeletonUBlend(drawables, &skeleton, 40, 100);

@@ -99,6 +99,37 @@ vector<BasisPair> getBases(Joint *joint, int link) {
 	return bases;
 }
 
+vec3 projectVector(vec3 vec, vec3 normal) {
+	return vec - dot(vec, normal)*normal;
+}
+
+vec3 generateBlendedPoint(Skeleton *skeleton, int pivot, float u, float theta) {
+	int n = skeleton->joint->links.size();
+
+	float initialWeight = 1 - u; // max(cos(M_PI*u)*cos(M_PI*u), 0.f);
+	float weightSum = initialWeight;
+	vec3 pointSum = blendPair(skeleton, pivot, (pivot+1)%n, (pivot+2)%n, u, theta)*initialWeight;
+
+	for (int i = (pivot+1)%n; i != pivot; i = (i+1)%n) {
+		float thetaNew = skeleton->convertAngle(pivot, i, theta);
+		vec3 projectedDir = projectVector(skeleton->getDir(i), skeleton->getDir(pivot));
+		float cosWeight = max(dot(skeleton->getDir(pivot, theta), normalize(projectedDir)), 0.0001f);
+		cosWeight *= cosWeight;
+//		cosWeight = acos(cosWeight) / (M_PI);
+		
+		float uNew = 1 - cosWeight*u;
+		float weight = (1 - initialWeight)*cosWeight;
+
+		pointSum += weight*blendPair(skeleton, i, (i + 1) % n, (i + 2) % n, uNew, thetaNew);
+		weightSum += weight;
+	}
+	
+	if (weightSum < 0.001f)
+		return vec3(0.f);
+
+	return pointSum / weightSum;
+}
+
 vec3 blendPair(Skeleton *skeleton, int pivot, int linkA, int linkB, float u, float theta) {
 	int n = skeleton->joint->links.size();
 	//Get number of indices after pivot in curve set
