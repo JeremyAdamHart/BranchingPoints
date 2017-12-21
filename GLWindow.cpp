@@ -664,9 +664,9 @@ void WindowManager::mainLoop() {
 	//generateSingleCurve2(drawables, 20);
 
 	Joint center(vec3(0, 0, 0));
-	Joint a(normalize(vec3(1, 0, 0))*1.f);
+	Joint a(normalize(vec3(1, -1, 0))*1.f);
 	Joint b(vec3(0, 1, 0));
-	Joint c(vec3(0, 0, 1));
+	Joint c(vec3(0, 0, 3));
 	Joint d(normalize(vec3(-1, -1, -1)));
 
 	center.addLink(&b);

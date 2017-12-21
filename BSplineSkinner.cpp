@@ -106,7 +106,7 @@ vec3 projectVector(vec3 vec, vec3 normal) {
 vec3 generateBlendedPoint(Skeleton *skeleton, int pivot, float u, float theta) {
 	int n = skeleton->joint->links.size();
 
-	float initialWeight = 1 - u; // max(cos(M_PI*u)*cos(M_PI*u), 0.f);
+	float initialWeight = 1 - pow(u, 2); // max(cos(M_PI*u)*cos(M_PI*u), 0.f);
 	float weightSum = initialWeight;
 	vec3 pointSum = blendPair(skeleton, pivot, (pivot+1)%n, (pivot+2)%n, u, theta)*initialWeight;
 
@@ -114,11 +114,11 @@ vec3 generateBlendedPoint(Skeleton *skeleton, int pivot, float u, float theta) {
 		float thetaNew = skeleton->convertAngle(pivot, i, theta);
 		vec3 projectedDir = projectVector(skeleton->getDir(i), skeleton->getDir(pivot));
 		float cosWeight = max(dot(skeleton->getDir(pivot, theta), normalize(projectedDir)), 0.0001f);
-		cosWeight *= cosWeight;
+//		cosWeight *= cosWeight;
 //		cosWeight = acos(cosWeight) / (M_PI);
 		
 		float uNew = 1 - cosWeight*u;
-		float weight = (1 - initialWeight)*cosWeight;
+		float weight = (1-initialWeight)*cosWeight;
 
 		pointSum += weight*blendPair(skeleton, i, (i + 1) % n, (i + 2) % n, uNew, thetaNew);
 		weightSum += weight;
