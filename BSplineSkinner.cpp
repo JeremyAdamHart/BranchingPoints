@@ -68,8 +68,11 @@ vec3 generatePoint(Joint *joint, int link, float s, float radius, float theta) {
 		vec3 offset = vec3(curvePoint) / curvePoint.w - sharedPoint;
 
 		//Test
-		vec3 dir = normalize(curveSet[i].control[2] - p2);
+		vec3 dir = normalize(vec3(curveSet[i].control[2]) - vec3(p2)/p2.w);
+		vec3 perp = normalize(cross(dir, normalize(joint->links[link].dir())));
+		dir = normalize(cross(normalize(joint->links[link].dir()), perp));
 		float angle = acos(dot(dir, currentDir));
+//		float weight = max((M_PI*0.5f - abs(angle)) / (M_PI*0.5f), 0.f);	
 		float weight = max(dot(dir, currentDir), 0.f);
 		offset *= weight;
 
@@ -80,7 +83,7 @@ vec3 generatePoint(Joint *joint, int link, float s, float radius, float theta) {
 	if (totalWeight < 0.001f)
 		return sharedPoint;
 	return valid*(sharedPoint + offsets / totalWeight);
-
+	
 	return blendedPoint*valid;
 }
 
@@ -140,8 +143,15 @@ vec3 blendPair(Skeleton *skeleton, int pivot, int linkA, int linkB, float u, flo
 
 	vec4 pA = curveSet[indexA].getQuadPoint(u);
 	vec4 pB = curveSet[indexB].getQuadPoint(u);
-	float wA = max(dot(skeleton->getDir(pivot, theta), skeleton->getDir(linkA)), 0.f);
-	float wB = max(dot(skeleton->getDir(pivot, theta), skeleton->getDir(linkB)), 0.f);
+	
+	vec3 pivotDir = skeleton->getDir(pivot, theta);
+
+	float wA = max(dot(pivotDir, normalize(projectVector(skeleton->getDir(linkA), skeleton->getDir(pivot)))), 0.f);
+	float wB = max(dot(pivotDir, normalize(projectVector(skeleton->getDir(linkB), skeleton->getDir(pivot)))), 0.f);
+
+
+//	float wA = max(dot(skeleton->getDir(pivot, theta), skeleton->getDir(linkA)), 0.f);
+//	float wB = max(dot(skeleton->getDir(pivot, theta), skeleton->getDir(linkB)), 0.f);
 //	wB = 0.f;
 	if (wA*wA + wB*wB < 0.0001f)
 		return 0.5f*(vec3(pA)/pA.w + vec3(pB) / pB.w);

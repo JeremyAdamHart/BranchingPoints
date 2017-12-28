@@ -43,13 +43,13 @@ HEADERS=-Iheaders -Iinclude
 ENGINE_OBJS=$(addprefix $(ENGINE_DIR)/obj/,$(notdir $(ENGINE_SOURCES:.cpp=.o)))
 
 .PHONY: default
-default:  fetch buildDirectories $(ENGINE_DIR)/perlinNoise.out
+default:  fetch buildDirectories $(ENGINE_DIR)/BranchingPoints.out
 	echo "Build completed"
 
-$(ENGINE_DIR)/perlinNoise.out: $(ENGINE_OBJS)
+$(ENGINE_DIR)/BranchingPoints.out: $(ENGINE_OBJS)
 	$(CC) $(LINK_FLAGS) $(ENGINE_OBJS) -o $@ -L. -lrenderingextensions -lrenderingcore $(LIBS)
 
-all: $(ENGINE_DIR)/perlinNoise.out 
+all: $(ENGINE_DIR)/BranchingPoints.out 
 
 $(ENGINE_DIR)/obj/%.o: $(ENGINE_DIR)/%.cpp
 	$(CC) -c $(CFLAGS) $(ENGINE_HEADERS) $(HEADERS) $(INCDIR) $< -o $@

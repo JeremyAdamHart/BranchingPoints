@@ -33,6 +33,8 @@ bool reloadShaders = false;
 bool windowResized = false;
 int windowWidth, windowHeight;
 
+mat4 winRatio;
+
 void cursorPositionCallback(GLFWwindow *window, double xpos, double ypos) {
 	static vec2 lastPos = vec2(0.f, 0.f);
 	
@@ -64,8 +66,8 @@ void windowResizeCallback(GLFWwindow* window, int width, int height) {
 int curvePicker = -1;
 float curveProgress = 0.f;
 
-int mode = 0;
-enum{SKELETON_TUBE=0, BAD_BLENDED, CURVE_BROKEN, CURVE_FIXED, GOOD_BLENDED};
+enum{SKELETON_TUBE=0, BAD_BLENDED, CURVE_BROKEN, CURVE_FIXED, GOOD_BLENDED, OTHER};
+int mode = OTHER;
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
@@ -160,7 +162,7 @@ void generateCurves(vector<Drawable>& drawables, int numCurves, int numDivisions
 	for (int i = 0; i < numCurves; i++) {
 		vec4 circleA = vec4(-cos(theta)*radius, 0.0, sin(theta)*radius, 1) + vec4(0.5, -0.5, 0, 0);
 		vec4 circleB = vec4(0, -cos(theta)*radius, sin(theta)*radius, 1) + vec4(-0.5, 0.5, 0, 0);
-		float w = 1.f / max(cos(theta), 0.0001f);
+		float w = 1.f/max(cos(theta), 0.0001f);
 		vec4 middle = vec4(circleA.x, circleB.y, circleA.z, 1.0)*w;
 
 		curves.push_back(bezier<vec4>({ circleA, middle, circleB }));
@@ -312,7 +314,7 @@ void generateBlendedCurves(vector<Drawable>& drawables, int numCurves, int numDi
 				new SimpleGeometry(controlZ.data(), controlZ.size(), GL_LINE_STRIP)));
 		
 			drawables.push_back(Drawable(
-				new ColorMat(vec3(1.f, 1.f, 1.f)*float(numCurves) / float(numCurves)),
+				new ColorMat(vec3(0.f, 0.f, 0.f)*float(numCurves) / float(numCurves)),
 				new SimpleGeometry(points.data(), points.size(), GL_POINTS)));
 
 			drawables.push_back(Drawable(
@@ -322,7 +324,7 @@ void generateBlendedCurves(vector<Drawable>& drawables, int numCurves, int numDi
 				new ColorMat(vec3(0.f, 1.f, 0.f)*float(numCurves) / float(numCurves)),
 				new SimpleGeometry(pointsZ.data(), pointsZ.size(), GL_LINE_STRIP)));
 			drawables.push_back(Drawable(
-				new ColorMat(vec3(1.f, 1.f, 0.f)*float(numCurves) / float(numCurves)),
+				new ColorMat(vec3(0.5f, 0.5f, 0.5f)*float(numCurves) / float(numCurves)),
 				new SimpleGeometry(offsets.data(), offsets.size(), GL_LINES)));
 			
 		}
@@ -374,14 +376,14 @@ void generateSingleCurve2(vector<Drawable>& drawables, int numDivisions) {
 		new ColorMat(vec3(1.f, 0.f, 0.f)),
 		new SimpleGeometry(curve.control.data(), 3, GL_LINE_STRIP), offset));
 	drawables.push_back(Drawable(
-		new ColorMat(vec3(1.f, 1.f, 1.f)),
+		new ColorMat(vec3(0.f, 0.f, 0.f)),
 		new SimpleGeometry(arr2, 4, GL_LINES), offset));
 	drawables.push_back(Drawable(
-		new ColorMat(vec3(0.f, 1.f, 0.f)),
-		new SimpleGeometry(points.data(), points.size(), GL_POINTS), offset));
+		new ColorMat(vec3(0.f, 5.f, 0.f)),
+		new SimpleGeometry(points.data(), points.size(), GL_LINE_STRIP), offset));
 	drawables.push_back(Drawable(
-		new ColorMat(vec3(0.f, 1.f, 0.f)),
-		new SimpleGeometry(points3D.data(), points3D.size(), GL_POINTS), offset));
+		new ColorMat(vec3(0.f, 0.f, 5.f)),
+		new SimpleGeometry(points3D.data(), points3D.size(), GL_LINE_STRIP), offset));
 
 
 }
@@ -510,7 +512,7 @@ void generateSurfaceFromSkeleton(vector<Drawable> &drawables, Joint *joint, floa
 		float thetaStep = 2.f*M_PI / float(numCurves - 1);
 		for (int i = 0; i < numCurves; i++) {
 			float s = 0.f;
-			float sStep = 2.f / float(sDivisions - 1);	
+			float sStep =0.75f / float(sDivisions - 1);	
 
 			for (int j = 0; j < sDivisions; j++) {
 				points.push_back(generatePoint(joint, l, s, radius, theta) + offset);
@@ -535,7 +537,7 @@ void generateSurfaceFromSkeleton(vector<Drawable> &drawables, Joint *joint, floa
 			}
 		}
 
-//		if(l != 2)
+//		if(l == 2)
 			drawables.push_back(positionsAndFacesToDrawable(points, faces, vec3(0.5, 0.3, 0.8), true));
 
 		points.clear();
@@ -666,7 +668,7 @@ void WindowManager::mainLoop() {
 	Joint center(vec3(0, 0, 0));
 	Joint a(normalize(vec3(1, -1, 0))*1.f);
 	Joint b(vec3(0, 1, 0));
-	Joint c(vec3(0, 0, 3));
+	Joint c(vec3(0, 0, 1));
 	Joint d(normalize(vec3(-1, -1, -1)));
 
 	center.addLink(&b);
@@ -676,7 +678,7 @@ void WindowManager::mainLoop() {
 
 	Skeleton skeleton(&center);
 
-//	generateSurfaceFromSkeleton(drawables, &center, 0.2f, 40, 100);
+//	generateSurfaceFromSkeleton(drawables, &center, 0.2f, 40, 20);
 	generateSurfaceFromSkeletonUBlend(drawables, &skeleton, 40, 100);
 
 	int lastCurvePicked = curvePicker;
@@ -687,6 +689,8 @@ void WindowManager::mainLoop() {
 	TorranceSparrowShader tsShader;
 
 	vec3 lightPos(10.f, 10.f, 10.f);
+
+	glLineWidth(2.f);
 
 	while (!glfwWindowShouldClose(window)) {
 
@@ -702,6 +706,10 @@ void WindowManager::mainLoop() {
 		if (windowResized) {
 			window_width = windowWidth;
 			window_height = windowHeight;
+			
+			glViewport(0, 0, windowWidth, windowHeight);
+			cam.projection = glm::perspective(70.f*M_PI / 180.f, 
+				float(windowWidth) / float(windowHeight), 0.1f, 5.f);
 		}
 
 		if (mode != lastMode) {
@@ -725,12 +733,14 @@ void WindowManager::mainLoop() {
 
 			lastMode = mode;
 		}
-		glClearColor(0.f, 0.f, 0.f, 1.f);
+		glClearColor(1.f, 1.f, 1.f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		for (int i = 0; i < drawables.size(); i++) {
-			shader.draw(cam, drawables[i]);
-			tsShader.draw(cam, vec3(10.f, 10.f, 10.f), drawables[i]);
+			if(mode == OTHER)
+				tsShader.draw(cam, vec3(10.f, 10.f, 10.f), drawables[i]);
+			else
+				shader.draw(cam, drawables[i]);
 		}
 
 		glfwSwapBuffers(window);
