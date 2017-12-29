@@ -32,8 +32,7 @@ TrackballCamera cam(
 bool reloadShaders = false;
 bool windowResized = false;
 int windowWidth, windowHeight;
-
-mat4 winRatio;
+int viewportWidth, viewportHeight;
 
 void cursorPositionCallback(GLFWwindow *window, double xpos, double ypos) {
 	static vec2 lastPos = vec2(0.f, 0.f);
@@ -63,11 +62,17 @@ void windowResizeCallback(GLFWwindow* window, int width, int height) {
 	windowHeight = height;
 }
 
+void framebufferResizeCallback(GLFWwindow* window, int width, int height){
+	viewportWidth = width;
+	viewportHeight = height;
+}
+
 int curvePicker = -1;
 float curveProgress = 0.f;
 
-enum{SKELETON_TUBE=0, BAD_BLENDED, CURVE_BROKEN, CURVE_FIXED, GOOD_BLENDED, OTHER};
-int mode = OTHER;
+enum{SKELETON_TUBE=0, BAD_BLENDED, CURVE_BROKEN, CURVE_FIXED, GOOD_BLENDED, BLENDED_SURFACE1,
+BLENDED_SURFACE2};
+int mode = BLENDED_SURFACE2;
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
@@ -75,13 +80,13 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 	else if (key == GLFW_KEY_W && action == GLFW_RELEASE)
 		curvePicker = curvePicker + 1;
 	else if (key == GLFW_KEY_S && action == GLFW_RELEASE)
-		curvePicker = max(curvePicker - 1, 0);
+		curvePicker = std::max(curvePicker - 1, 0);
 	else if (key == GLFW_KEY_A && action == GLFW_RELEASE)
 		curvePicker = -1;
 	else if (key == GLFW_KEY_UP && action == GLFW_REPEAT)
-		curveProgress = min(1.f, curveProgress+0.01f);
+		curveProgress = std::min(1.f, curveProgress+0.01f);
 	else if (key == GLFW_KEY_DOWN && action == GLFW_REPEAT)
-		curveProgress = max(0.f, curveProgress - 0.01f);
+		curveProgress = std::max(0.f, curveProgress - 0.01f);
 	else if (key == GLFW_KEY_1 && action == GLFW_RELEASE)
 		mode = SKELETON_TUBE;
 	else if (key == GLFW_KEY_2 && action == GLFW_RELEASE)
@@ -92,6 +97,10 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 		mode = CURVE_FIXED;
 	else if (key == GLFW_KEY_5 && action == GLFW_RELEASE)
 		mode = GOOD_BLENDED;
+	else if (key == GLFW_KEY_6 && action == GLFW_RELEASE)
+		mode = BLENDED_SURFACE1;
+	else if (key == GLFW_KEY_7 && action == GLFW_RELEASE)
+		mode = BLENDED_SURFACE2;
 		
 }
 
@@ -162,7 +171,7 @@ void generateCurves(vector<Drawable>& drawables, int numCurves, int numDivisions
 	for (int i = 0; i < numCurves; i++) {
 		vec4 circleA = vec4(-cos(theta)*radius, 0.0, sin(theta)*radius, 1) + vec4(0.5, -0.5, 0, 0);
 		vec4 circleB = vec4(0, -cos(theta)*radius, sin(theta)*radius, 1) + vec4(-0.5, 0.5, 0, 0);
-		float w = 1.f/max(cos(theta), 0.0001f);
+		float w = 1.f/std::max(cos(theta), 0.0001f);
 		vec4 middle = vec4(circleA.x, circleB.y, circleA.z, 1.0)*w;
 
 		curves.push_back(bezier<vec4>({ circleA, middle, circleB }));
@@ -235,8 +244,8 @@ void generateBlendedCurves(vector<Drawable>& drawables, int numCurves, int numDi
 		vec4 yPoint = circleY(theta, centerY, radius);
 		vec4 xPoint = circleX(xTheta, centerX, radius);
 		vec4 zPoint = circleZ(zTheta, centerZ, radius);
-		float wX = 1.f / max(cos(theta), 0.0001f);
-		float wZ = 1.f / max(cos(theta - M_PI*0.5f), 0.0001f);
+		float wX = 1.f / std::max(cos(theta), 0.0001f);
+		float wZ = 1.f / std::max(cos(theta - M_PI*0.5f), 0.0001f);
 		vec4 middleX = vec4(yPoint.x, xPoint.y, xPoint.z, 1.0)*wX;
 		vec4 middleZ = vec4(zPoint.x, zPoint.y, xPoint.z, 1.0)*wZ;
 
@@ -659,17 +668,23 @@ void WindowManager::mainLoop() {
 
 	glfwSetKeyCallback(window, keyCallback);
 	glfwSetWindowSizeCallback(window, windowResizeCallback);
+	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 	//glfwSetCursorPosCallback(window, cursorPositionCallback);
 
 	vector<Drawable> drawables;
 
 	//generateSingleCurve2(drawables, 20);
 
+	//*********************
+	///////////////////////
+	//MODIFY HERE - Positions of points
+	///////////////////////
+	//*********************
+
 	Joint center(vec3(0, 0, 0));
 	Joint a(normalize(vec3(1, -1, 0))*1.f);
 	Joint b(vec3(0, 1, 0));
 	Joint c(vec3(0, 0, 1));
-	Joint d(normalize(vec3(-1, -1, -1)));
 
 	center.addLink(&b);
 	center.addLink(&c);
@@ -707,7 +722,7 @@ void WindowManager::mainLoop() {
 			window_width = windowWidth;
 			window_height = windowHeight;
 			
-			glViewport(0, 0, windowWidth, windowHeight);
+			glViewport(0, 0, viewportWidth, viewportHeight);
 			cam.projection = glm::perspective(70.f*M_PI / 180.f, 
 				float(windowWidth) / float(windowHeight), 0.1f, 5.f);
 		}
@@ -729,6 +744,12 @@ void WindowManager::mainLoop() {
 			case GOOD_BLENDED:
 				generateBlendedCurves(drawables, 20, 20, 0.1f);
 				break;
+			case BLENDED_SURFACE1:
+				generateSurfaceFromSkeleton(drawables, &center, 0.2f, 40, 20);
+				break;
+			case BLENDED_SURFACE2:
+				generateSurfaceFromSkeletonUBlend(drawables, &skeleton, 40, 100);
+				break;
 			}
 
 			lastMode = mode;
@@ -737,7 +758,7 @@ void WindowManager::mainLoop() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		for (int i = 0; i < drawables.size(); i++) {
-			if(mode == OTHER)
+			if(mode == BLENDED_SURFACE1 || mode == BLENDED_SURFACE2)
 				tsShader.draw(cam, vec3(10.f, 10.f, 10.f), drawables[i]);
 			else
 				shader.draw(cam, drawables[i]);

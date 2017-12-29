@@ -36,7 +36,7 @@ vector<bezier<vec4>> getCurveSet(Joint *joint, int link, float radius, float the
 		
 		vec3 p3 = getCirclePoint(center2, basis.bx, basis.by2, radius, theta + thetaDiff);
 		vec3 p2 = lineIntersection(p1, lA, p3, lB);
-		float w = 1.f / max(cos(theta + thetaDiff - M_PI*0.5f), 0.0001f);
+		float w = 1.f / std::max(cos(theta + thetaDiff - M_PI*0.5f), 0.0001f);
 		curveSet.push_back(bezier<vec4>({ vec4(p1, 1), vec4(p2, 1)*w, vec4(p3, 1) }));
 	}
 
@@ -72,8 +72,8 @@ vec3 generatePoint(Joint *joint, int link, float s, float radius, float theta) {
 		vec3 perp = normalize(cross(dir, normalize(joint->links[link].dir())));
 		dir = normalize(cross(normalize(joint->links[link].dir()), perp));
 		float angle = acos(dot(dir, currentDir));
-//		float weight = max((M_PI*0.5f - abs(angle)) / (M_PI*0.5f), 0.f);	
-		float weight = max(dot(dir, currentDir), 0.f);
+//		float weight = std::max((M_PI*0.5f - abs(angle)) / (M_PI*0.5f), 0.f);	
+		float weight = std::max(dot(dir, currentDir), 0.f);
 		offset *= weight;
 
 		totalWeight += weight; //length(offset);
@@ -109,14 +109,14 @@ vec3 projectVector(vec3 vec, vec3 normal) {
 vec3 generateBlendedPoint(Skeleton *skeleton, int pivot, float u, float theta) {
 	int n = skeleton->joint->links.size();
 
-	float initialWeight = 1 - pow(u, 2); // max(cos(M_PI*u)*cos(M_PI*u), 0.f);
+	float initialWeight = 1 - pow(u, 2); // std::max(cos(M_PI*u)*cos(M_PI*u), 0.f);
 	float weightSum = initialWeight;
 	vec3 pointSum = blendPair(skeleton, pivot, (pivot+1)%n, (pivot+2)%n, u, theta)*initialWeight;
 
 	for (int i = (pivot+1)%n; i != pivot; i = (i+1)%n) {
 		float thetaNew = skeleton->convertAngle(pivot, i, theta);
 		vec3 projectedDir = projectVector(skeleton->getDir(i), skeleton->getDir(pivot));
-		float cosWeight = max(dot(skeleton->getDir(pivot, theta), normalize(projectedDir)), 0.0001f);
+		float cosWeight = std::max(dot(skeleton->getDir(pivot, theta), normalize(projectedDir)), 0.0001f);
 //		cosWeight *= cosWeight;
 //		cosWeight = acos(cosWeight) / (M_PI);
 		
@@ -146,12 +146,12 @@ vec3 blendPair(Skeleton *skeleton, int pivot, int linkA, int linkB, float u, flo
 	
 	vec3 pivotDir = skeleton->getDir(pivot, theta);
 
-	float wA = max(dot(pivotDir, normalize(projectVector(skeleton->getDir(linkA), skeleton->getDir(pivot)))), 0.f);
-	float wB = max(dot(pivotDir, normalize(projectVector(skeleton->getDir(linkB), skeleton->getDir(pivot)))), 0.f);
+	float wA = std::max(dot(pivotDir, normalize(projectVector(skeleton->getDir(linkA), skeleton->getDir(pivot)))), 0.f);
+	float wB = std::max(dot(pivotDir, normalize(projectVector(skeleton->getDir(linkB), skeleton->getDir(pivot)))), 0.f);
 
 
-//	float wA = max(dot(skeleton->getDir(pivot, theta), skeleton->getDir(linkA)), 0.f);
-//	float wB = max(dot(skeleton->getDir(pivot, theta), skeleton->getDir(linkB)), 0.f);
+//	float wA = std::max(dot(skeleton->getDir(pivot, theta), skeleton->getDir(linkA)), 0.f);
+//	float wB = std::max(dot(skeleton->getDir(pivot, theta), skeleton->getDir(linkB)), 0.f);
 //	wB = 0.f;
 	if (wA*wA + wB*wB < 0.0001f)
 		return 0.5f*(vec3(pA)/pA.w + vec3(pB) / pB.w);
@@ -188,7 +188,7 @@ vec3 generatePoint(Joint *joint, int link, float u, float radius, float theta) {
 		//Test
 		vec3 dir = normalize(curveSet[i].control[2] - p2);
 		float angle = acos(dot(dir, currentDir));
-		float weight = max(dot(dir, currentDir), 0.f);
+		float weight = std::max(dot(dir, currentDir), 0.f);
 		offset *= weight;
 
 		totalWeight += weight; //length(offset);

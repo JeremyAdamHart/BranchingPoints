@@ -87,7 +87,7 @@ std::vector<bezier<vec4>> Skeleton::getCurveSet(int link, float theta) {
 		vec3 perp2 = normalize(cross(perp, lB));
 
 //		float w = 1.f / max(dot(dir, perp2), 0.0001f);
-		float w = 1.f / max(dot(getDir(link, theta), getDir(i)), 0.0001f);
+		float w = 1.f / std::max(dot(getDir(link, theta), getDir(i)), 0.0001f);
 		curveSet.push_back(bezier<vec4>({ vec4(p1, 1), vec4(p2, 1)*w, vec4(p3, 1) }));
 	}
 

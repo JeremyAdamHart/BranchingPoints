@@ -1,0 +1,16 @@
+Controls:
+Left Mouse Button: Rotate window
+Click Scroll Wheel and Move Mouse: Zoom in and out
+
+Number Keys:
+	1 - Blended Pair
+	2 - Incorrect blending due to NURBS curve
+	3 - Demonstration of problem with NURBS curves
+	4 - Fix of problem with NURBS curves
+	5 - Fixed blending
+	6 - First method for blending surface
+	7 - Second method for blending surface
+
+There are no controls for modifying the skeleton yet, but within the GLWindow.cpp file there's a section where you can modify the points. Each joint connects to the center to form a cylinder. Look up "MODIFY HERE" and it should take you straight here, otherwise it's in the mainLoop function.
+
+

@@ -12,7 +12,7 @@ endif
 
 INCDIR= -I./include
 
-LIBDIR=-L/usr/X11R6 -L/usr/local/lib
+LIBDIR=-L/usr/X11R6 -L/usr/local/lib -L../RenderingEngineLibrary
 
 LIBS=
 
@@ -47,12 +47,12 @@ default:  fetch buildDirectories $(ENGINE_DIR)/BranchingPoints.out
 	echo "Build completed"
 
 $(ENGINE_DIR)/BranchingPoints.out: $(ENGINE_OBJS)
-	$(CC) $(LINK_FLAGS) $(ENGINE_OBJS) -o $@ -L. -lrenderingextensions -lrenderingcore $(LIBS)
+	$(CC) $(LINK_FLAGS) $(ENGINE_OBJS) -o $@ -L. -lrenderingextensions -lrenderingcore $(LIBS) $(LIBDIR)
 
 all: $(ENGINE_DIR)/BranchingPoints.out 
 
 $(ENGINE_DIR)/obj/%.o: $(ENGINE_DIR)/%.cpp
-	$(CC) -c $(CFLAGS) $(ENGINE_HEADERS) $(HEADERS) $(INCDIR) $< -o $@
+	$(CC) -c $(CFLAGS) $(ENGINE_HEADERS) $(HEADERS) $(INCDIR) $(LIBDIR) $< -o $@
 
 .PHONY: fetch
 fetch: 
@@ -71,4 +71,4 @@ buildDirectories:
 
 .PHONY: clean
 clean:
-	rm $(ENGINE_DIR)/*.out $(CORE_DIR)/obj/*.o $(EXTENSION_DIR)/obj/*.o $(ENGINE_DIR)/obj/*.o
+	rm $(ENGINE_DIR)/*.out $(ENGINE_DIR)/obj/*.o
